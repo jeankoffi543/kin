@@ -1,0 +1,702 @@
+#api/route.ts
+'use server'
+
+import type { NextRequest } from 'next/server'
+import { getSigns } from '@/api/sign'
+
+export async function GET(_req: NextRequest) {
+  const result = await getSigns(_req.nextUrl.searchParams)
+  return Response.json(result)
+}
+
+#components/action.tsx
+'use client'
+
+import type { DefaultValues, FormState } from '@taleen/ui'
+import type { ResponseCollection } from '@taleen/ui/types/type'
+import type { Row, Table } from '@tanstack/react-table'
+import type { CreateInput, EditInput, Sign } from '@/schema/sign'
+import { Controller } from '@taleen/ui'
+import { Button } from '@taleen/ui/components/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@taleen/ui/components/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@taleen/ui/components/dropdown-menu'
+import { Field, FieldError, FieldLabel } from '@taleen/ui/components/field'
+import { Input } from '@taleen/ui/components/input'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemMedia,
+} from '@taleen/ui/components/item'
+import { Spinner } from '@taleen/ui/components/spinner'
+import { useActionForm } from '@taleen/ui/hooks/use-action-form'
+import { useFileUpload } from '@taleen/ui/hooks/use-file-upload'
+import { useQueryClient } from '@tanstack/react-query'
+import { useTranslate } from '@tolgee/react'
+import { ImagePlus, MoreHorizontal, Plus, X } from 'lucide-react'
+import Image from 'next/image'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import * as React from 'react'
+import { create as createAction, update as updateAction } from '@/actions/sign'
+import {
+
+  signSchema,
+} from '@/schema/sign'
+
+interface DataTableRowActionsProps<TData> {
+  table: Table<TData>
+  row: Row<TData>
+}
+
+export function DataTableRowActions<TData>({
+  row: _row,
+  table,
+}: DataTableRowActionsProps<TData>) {
+  const { t } = useTranslate('sign')
+  const data = signSchema.parse(_row.original)
+
+  return (
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="data-[state=open]:bg-muted size-8"
+          >
+            <MoreHorizontal />
+            <span className="sr-only">Open menu</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-[190px]">
+          <DropdownMenuItem
+            // @ts-expect-error Impossible to use "unknown as index type"
+            onSelect={() => table.options.meta?.onAction?.('edit', data)}
+          >
+            {t('edit')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  )
+}
+
+export function CreateSignAction() {
+  const defaultFormValues = {
+    name: '',
+    image: undefined,
+  }
+
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const [open, setOpen] = React.useState<boolean>(searchParams.has('new'))
+
+  const onOpenChange = (next: boolean) => {
+    const href = pathname
+    const query = new URLSearchParams(searchParams?.toString())
+
+    if (next) {
+      query.append('new', '')
+    }
+    else {
+      query.delete('new')
+    }
+
+    const queryString = query.toString()
+    setOpen(next)
+    router.push(queryString ? `${href}?${query}` : href)
+  }
+
+  return (
+    <FormDialog
+      formDefaultValues={defaultFormValues}
+      open={open}
+      action={createAction}
+      isCreateForm
+      onOpenChange={onOpenChange}
+    />
+  )
+}
+
+interface EditSignActionProps {
+  data: Sign
+  onOpenChange?: (next: boolean) => void
+}
+
+export function EditSignAction({ data, onOpenChange }: EditSignActionProps) {
+  const [open, setOpen] = React.useState<boolean>(true)
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next)
+    onOpenChange?.(next)
+  }
+
+  return (
+    <FormDialog
+      formDefaultValues={data}
+      open={open}
+      action={updateAction}
+      onOpenChange={handleOpenChange}
+      defaultState={{ success: false, data }}
+    />
+  )
+}
+
+interface FormDialogProps {
+  formDefaultValues: DefaultValues<CreateInput | EditInput>
+  action: (
+    state: Awaited<FormState<Sign>>,
+    payload: FormData,
+  ) => FormState<Sign> | Promise<FormState<Sign>>
+  isCreateForm?: boolean
+  onOpenChange?: (next: boolean) => void
+  open: boolean
+  defaultState?: FormState<Sign>
+}
+
+function FormDialog({
+  formDefaultValues,
+  action,
+  isCreateForm = false,
+  open,
+  onOpenChange,
+  defaultState,
+}: FormDialogProps) {
+  const { t } = useTranslate('sign')
+  const queryClient = useQueryClient()
+
+  const handleSuccess = (data?: Sign) => {
+    onOpenChange?.(false)
+
+    if (!data) {
+      return
+    }
+
+    queryClient
+      .getQueriesData<ResponseCollection<Sign>>({ queryKey: ['signs'] })
+      .forEach(([queryKey, existing]) => {
+        if (!existing) {
+          return
+        }
+
+        const existingIndex = existing.data.findIndex(
+          item => item.id === data.id,
+        )
+        const canInsert
+          = existingIndex === -1
+            && isCreateForm
+            && existing.meta.current_page === 1
+
+        if (!canInsert && existingIndex === -1) {
+          return
+        }
+
+        const updatedData
+          = existingIndex !== -1
+            ? existing.data.map((item, index) =>
+                index === existingIndex ? data : item,
+              )
+            : [...existing.data, data]
+
+        const trimmedData = updatedData.slice(0, existing.meta.per_page)
+        const nextTotal = existing.meta.total + (existingIndex === -1 ? 1 : 0)
+
+        queryClient.setQueryData(queryKey, {
+          ...existing,
+          data: trimmedData,
+          meta: {
+            ...existing.meta,
+            total: nextTotal,
+            last_page: Math.max(
+              existing.meta.last_page,
+              Math.ceil(nextTotal / existing.meta.per_page),
+            ),
+            to:
+              existing.meta.current_page === 1
+                ? Math.min(
+                    (existing.meta.from ?? 1) + trimmedData.length - 1,
+                    nextTotal,
+                  )
+                : existing.meta.to,
+          },
+        })
+      })
+  }
+
+  const { form, submit, pending } = useActionForm({
+    action,
+    formDefaultValues: {
+      ...formDefaultValues,
+      _method: isCreateForm ? 'POST' : 'PUT',
+    },
+    onSuccess: handleSuccess,
+    defaultState,
+  })
+
+  const [{ files }, { removeFile, openFileDialog, getInputProps }]
+    = useFileUpload({
+      accept: 'image/*',
+      onFilesAdded: (files) => {
+        form.setValue('image', files[0]?.file, { shouldDirty: true })
+      },
+      initialFiles: formDefaultValues.image
+        ? [
+            {
+              url: formDefaultValues.image as string,
+              name: '',
+              size: 0,
+              type: '',
+              id: '',
+            },
+          ]
+        : [],
+    })
+
+  const { isDirty } = form.formState
+
+  const showFileDialog = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    openFileDialog()
+  }
+
+  const resetImageSelection = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    id: string,
+  ) => {
+    e.preventDefault()
+    removeFile(id)
+    form.setValue('image', undefined, { shouldDirty: true })
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        onOpenChange?.(next)
+      }}
+    >
+      {isCreateForm && (
+        <DialogTrigger asChild>
+          <Button className="btn-primary">
+            <Plus />
+            {' '}
+            {t('new')}
+          </Button>
+        </DialogTrigger>
+      )}
+
+      <DialogContent className="w-full sm:max-w-full lg:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isCreateForm
+              ? t('new.title')
+              : t('edit.title', { sign: formDefaultValues.name })}
+          </DialogTitle>
+          <DialogDescription>
+            {isCreateForm ? t('new.info') : t('edit.info')}
+          </DialogDescription>
+        </DialogHeader>
+        <form className="flex flex-col gap-y-4" onSubmit={submit}>
+          {/* Nom de l'enseigne */}
+          <Controller
+            control={form.control}
+            name="name"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="sign-name">{`${t('name')} *`}</FieldLabel>
+                <Input id="sign-name" placeholder="" {...field} />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+
+          {/* Image */}
+          <Controller
+            control={form.control}
+            name="image"
+            render={({ fieldState }) => (
+              <Field data-invalid={fieldState.invalid} className="justify-end">
+                <Item className="p-0">
+                  <ItemMedia variant="image">
+                    {files[0]?.preview
+                      ? (
+                          <Image
+                            src={files[0]?.preview}
+                            alt={files[0]?.file.name ?? ''}
+                            width={32}
+                            height={32}
+                            className="object-cover"
+                          />
+                        )
+                      : (
+                          <ImagePlus className="opacity-60" size={24} />
+                        )}
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemActions>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={showFileDialog}
+                      >
+                        {files[0]?.file
+                          ? t('change', { ns: 'common' })
+                          : t('upload', { ns: 'common' })}
+                      </Button>
+                      {files[0]?.id && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={e => resetImageSelection(e, files[0]!.id)}
+                        >
+                          <X />
+                        </Button>
+                      )}
+                    </ItemActions>
+                    <Input
+                      {...getInputProps({
+                        className: 'sr-only',
+                        id: 'sign-image',
+                      })}
+                    />
+                  </ItemContent>
+                </Item>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full bg-primary"
+            disabled={!isDirty}
+          >
+            {pending && <Spinner />}
+            {isCreateForm ? t('form.createAction') : t('form.updateAction')}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+
+#components/columns.tsx
+import type { ColumnDef } from '@tanstack/react-table'
+import type { Sign } from '@/schema/sign'
+import { DataTableColumnHeader } from '@taleen/ui/blocks/data-table'
+import { Checkbox } from '@taleen/ui/components/checkbox'
+import { useTranslate } from '@tolgee/react'
+import * as React from 'react'
+
+import { SafeImage } from '@/components/ImageFallback'
+
+import { DataTableRowActions } from './actions'
+
+export function useColumns(): ColumnDef<Sign>[] {
+  const { t } = useTranslate('sign')
+  return React.useMemo(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+              || (table.getIsSomePageRowsSelected() && 'indeterminate')
+            }
+            onCheckedChange={value =>
+              table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+            className="translate-y-[2px]"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={value => row.toggleSelected(!!value)}
+            aria-label="Select row"
+            className="translate-y-[2px]"
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        enableColumnFilter: true,
+        accessorKey: 'image',
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title={column.columnDef.meta?.label ?? ''}
+          />
+        ),
+        cell: ({ row }) => (
+          <div className="flex items-center">
+            <SafeImage
+              src={row.original.image}
+              alt="Sign"
+              width={24}
+              height={24}
+              className="rounded-md mr-2 object-cover size-6"
+            />
+          </div>
+        ),
+        meta: {
+          label: t('image'),
+        },
+      },
+      {
+        enableColumnFilter: true,
+        accessorKey: 'name',
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title={column.columnDef.meta?.label ?? ''}
+          />
+        ),
+        cell: ({ row }) => (
+          <div className="flex items-center">
+            <div className="max-w-[200px]">{row.getValue('name')}</div>
+          </div>
+        ),
+        meta: {
+          label: t('name'),
+        },
+      },
+      {
+        id: 'actions',
+        cell: ({ row, table }) => (
+          <DataTableRowActions row={row} table={table} />
+        ),
+      },
+    ],
+    [t],
+  )
+}
+
+
+#components/filters.tsx
+import type { FilterFieldsConfig } from '@taleen/ui/components/filters'
+import { useTranslate } from '@tolgee/react'
+import { Type } from 'lucide-react'
+import * as React from 'react'
+
+export function useFilterFields(): FilterFieldsConfig {
+  const { t } = useTranslate('sign')
+  const operators = React.useMemo(
+    () => [
+      { value: 'lk', label: t('filter.operators.contains', { ns: 'common' }) },
+    ],
+    [t],
+  )
+  return React.useMemo(
+    () => [
+      {
+        key: 'name',
+        label: t('name'),
+        icon: <Type className="size-3.5" />,
+        type: 'text',
+        operators,
+        defaultOperator: 'lk',
+        placeholder: t('filter.namePlaceholder'),
+      },
+    ],
+    [t, operators],
+  )
+}
+
+#components/listing.tsx
+'use client'
+
+import type { Filter } from '@taleen/ui/components/filters'
+import type { QueryParams } from '@taleen/ui/lib/utils'
+import type { ResponseCollection } from '@taleen/ui/types/type'
+import type {
+  ColumnFiltersState,
+  OnChangeFn,
+  PaginationState,
+} from '@tanstack/react-table'
+import type { Sign } from '@/schema/sign'
+import { DataTable } from '@taleen/ui/blocks/data-table'
+import { useDebounce } from '@taleen/ui/hooks/use-debounce'
+import { queryStringify } from '@taleen/ui/lib/utils'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useTranslate } from '@tolgee/react'
+import * as React from 'react'
+
+import { useSignAction } from '@/hooks/use-sign-action'
+
+import { CreateSignAction, EditSignAction } from './actions'
+import { useColumns } from './columns'
+import { useFilterFields } from './filters'
+
+async function fetchSigns(query: QueryParams) {
+  const queryParams = queryStringify(query)
+  const input = queryParams ? `/signs/api?${queryParams}` : '/signs/api'
+  const response = await fetch(input)
+  return (await response.json()) as ResponseCollection<Sign>
+}
+
+interface SignsListingProps {
+  initialData: ResponseCollection<Sign>
+  initialPagination: PaginationState
+  initialPageCount: number
+}
+
+export function SignsListing({
+  initialData,
+  initialPagination,
+  initialPageCount,
+}: SignsListingProps) {
+  const columns = useColumns()
+  const filterFields = useFilterFields()
+  const [pagination, setPagination]
+    = React.useState<PaginationState>(initialPagination)
+  const [globalFilter, setGlobalFilter] = React.useState<any>([])
+  const [filters, setFilters] = React.useState<Filter[]>([])
+
+  const filtersToQueries = React.useMemo(
+    () =>
+      Object.fromEntries(
+        filters
+          .filter(filter => filter.values.length === 1 && !!filter.values[0])
+          .map((filter) => {
+            const value
+              = filter.values.length >= 1 ? filter.values.join('') : filter.values
+            if (filter.operator === 'is') {
+              return [filter.field, value]
+            }
+
+            return [`${filter.field}__${filter.operator}`, value]
+          }),
+      ),
+    [filters],
+  )
+
+  const searchQuery = useDebounce(
+    [pagination, globalFilter, filtersToQueries],
+    500,
+  )
+  const { t } = useTranslate('sign')
+
+  const { data: signs } = useQuery({
+    queryKey: ['signs', ...searchQuery],
+    queryFn: () =>
+      fetchSigns({
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize,
+        search: globalFilter,
+        ...filtersToQueries,
+      }),
+    retry: false,
+    placeholderData: keepPreviousData,
+  })
+
+  const {
+    sign,
+    actionParam: action,
+    updateSign,
+    updateQuery,
+  } = useSignAction({ signs: initialData.data })
+
+  const pageCount = React.useMemo(
+    () => signs?.meta.last_page ?? initialPageCount,
+    [signs?.meta.last_page, initialPageCount],
+  )
+
+  const enterEditMode = (row: Sign) => {
+    updateSign(row, 'edit')
+  }
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4">
+      <div className="flex flex-row items-center justify-between">
+        <h3 className="text-2xl font-bold">{t('signs')}</h3>
+        <CreateSignAction />
+      </div>
+      <div className="data-table-container">
+        <DataTable
+          columnsLabel={t('table.columnsLabel', { ns: 'common' })}
+          columnsMenuLabel={t('table.columnsMenuLabel', { ns: 'common' })}
+          columns={columns}
+          filterFields={filterFields}
+          data={signs?.data ?? initialData.data}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          pageCount={pageCount}
+          onGlobalSearchChange={setGlobalFilter}
+          onColumnFiltersChange={
+            setFilters as unknown as OnChangeFn<ColumnFiltersState>
+          }
+          globalSearch={globalFilter}
+          searchPlaceholder={t('searchPlaceholder')}
+          selectedRowsText={(rowsCount, selectedRows) =>
+            t('table.selectedRows', { ns: 'common', rowsCount, selectedRows })}
+          pageInfoText={(pageCount, pageIndex) =>
+            t('table.pageInfo', { ns: 'common', pageCount, pageIndex })}
+          pageSizeText={t('table.pageSize', { ns: 'common' })}
+          filterResetText={t('table.filterReset', { ns: 'common' })}
+          onAction={(action, row) => {
+            if (action === 'edit') {
+              enterEditMode(row as Sign)
+            }
+          }}
+        />
+      </div>
+      {sign.current && action === 'edit' && (
+        <EditSignAction
+          data={sign.current}
+          onOpenChange={next => updateQuery(next)}
+        />
+      )}
+    </div>
+  )
+}
+
+#page.tsx
+import { callApi, getPaginationFromResponse } from '@taleen/ui/lib/utils'
+import { getSigns } from '@/api/sign'
+
+import { SignsListing } from './components/listing'
+
+const initialFetchSigns = callApi(async () => await getSigns({}))
+
+export default async function Page() {
+  const [error, result] = await initialFetchSigns()
+
+  if (!result) {
+    console.log('error', error)
+  }
+
+  const pagination = getPaginationFromResponse(result!)
+
+  return (
+    <SignsListing
+      initialData={result!}
+      initialPagination={{
+        pageIndex: pagination.pageIndex,
+        pageSize: pagination.pageSize,
+      }}
+      initialPageCount={pagination.pageCount}
+    />
+  )
+}

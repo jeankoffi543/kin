@@ -1,0 +1,384 @@
+● Voici l'analyse complète de l'architecture de kinMobile.
+
+  ---
+  Analyse approfondie — kinMobile (React Native 0.86 / Android-first)
+
+  Rôle de l'app
+
+  kinMobile est un agent de surveillance qui tourne sur l'appareil de l'enfant. Il ne fait pas partie du backoffice parent (Next.js) — il est le producteur de données côté enfant :
+  - Collecte 11 canaux de télémétrie en continu
+  - Sync batché vers POST /api/device/sync avec déduplication sync_hash
+  - Pull et exécute des commandes C2 (screenshot, screen_recording, live_mic)
+  - Applique des règles de restriction localement (bloquer appels, SMS, apps)
+
+  iOS est hors scope. Apple n'autorise pas ce niveau d'accès système (pas d'AccessibilityService, pas de SMS ContentProvider, pas de CallLog). L'app cible Android 10+.
+
+  ---
+  Architecture en 5 couches
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Couche 1 — UI Minimale                                        │
+  │  Onboarding QR/PIN → enregistrement UUID → écran cadenas       │
+  │  (l'enfant voit "App protégée par Kin", rien d'autre)          │
+  └────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Couche 2 — 11 Collecteurs natifs                              │
+  │  CallLog · SMS · Contacts · Notifications · GPS                │
+  │  Geofences · Social · Browser · Apps · Files · Media          │
+  └────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Couche 3 — SQLite Queue locale (SSoT)                         │
+  │  11 tables · sync_hash unique · local_sqlite_id · local_status │
+  │  pending → synced → purged                                     │
+  └────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Couche 4 — Sync Engine                                        │
+  │  WorkManager 15min · POST /device/sync · cleared[] → purge     │
+  │  FCM wake-up pour sync immédiat                                │
+  └────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Couche 5 — C2 Executor + Restriction Engine                   │
+  │  GET /device/commands → execute → POST /device/commands/{id}/respond │
+  │  GET /device/restrictions → enforce localement                 │
+  └────────────────────────────────────────────────────────────────┘
+
+  ---
+  Packages à installer
+
+  # Navigation
+  yarn add @react-navigation/native @react-navigation/stack react-native-screens
+
+  # Stockage
+  yarn add @op-engineering/op-sqlite          # SQLite natif haute perf
+  yarn add react-native-mmkv                  # Key-value (UUID, config, tokens)
+
+  # Réseau
+  yarn add axios
+
+  # Crypto — pour générer les sync_hash
+  yarn add react-native-quick-crypto
+
+  # Background tasks
+  yarn add react-native-background-fetch      # maps → WorkManager Android
+
+  # Firebase FCM
+  yarn add @react-native-firebase/app @react-native-firebase/messaging
+
+  # Permissions
+  yarn add react-native-permissions
+
+  # GPS
+  yarn add react-native-geolocation-service
+
+  # Contacts
+  yarn add @react-native-community/contacts
+
+  # Filesystem
+  yarn add react-native-fs
+
+  # Upload multipart (commandes C2)
+  yarn add react-native-image-picker
+
+  # Capture écran (screenshot command)
+  yarn add react-native-view-shot
+
+  Les modules natifs Android suivants n'ont pas d'équivalent npm stable et nécessitent d'être écrits en Kotlin dans /android/app/src/main/java/ :
+  - CallLogModule — lit CallLog.Calls ContentProvider
+  - SmsModule — lit Telephony.Sms ContentProvider
+  - NotificationListenerModule — étend NotificationListenerService
+  - UsageStatsModule — lit UsageStatsManager (historique browser/apps)
+  - PackageModule — liste apps installées via PackageManager
+  - MediaProjectionModule — screenshot/screen_recording via MediaProjection API
+  - AudioRecordModule — live_mic via AudioRecord
+
+  ---
+  Authentification — X-Device-UUID
+
+  Pas de JWT. L'API identifie l'appareil par un header UUID.
+
+  Flux d'enregistrement :
+  1. Le parent crée l'appareil dans le backoffice (POST /api/user/devices/register) → reçoit un uuid + setup_code
+  2. Le parent génère un QR code ou code PIN qu'il montre à l'enfant lors du setup initial
+  3. L'app scanne/saisit le code → stocke l'UUID dans MMKV (permanent, survit aux MAJ)
+  4. Chaque requête injecte automatiquement le header
+
+  // src/lib/api.ts
+  import axios from 'axios'
+  import { MMKV } from 'react-native-mmkv'
+
+  export const storage = new MMKV({ id: 'kin-device' })
+
+  export const api = axios.create({
+    baseURL: 'https://api.kin.example.com/api',
+    timeout: 30_000,
+  })
+
+  api.interceptors.request.use(config => {
+    const uuid = storage.getString('device_uuid')
+    if (uuid) config.headers['X-Device-UUID'] = uuid
+    return config
+  })
+
+  ---
+  SQLite Queue — SSoT locale
+
+  Chaque canal a sa propre table qui miroir exactement le contrat de DeviceSyncRequest. La colonne local_status (pending / synced) drive la sync :
+
+  -- src/db/schema.sql (exemple pour calls)
+  CREATE TABLE IF NOT EXISTS calls (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    sync_hash        TEXT    NOT NULL UNIQUE,
+    phone_number     TEXT    NOT NULL,
+    contact_name     TEXT,
+    call_type        TEXT    NOT NULL,      -- incoming | outgoing | missed
+    duration         INTEGER NOT NULL DEFAULT 0,
+    call_recorded    INTEGER DEFAULT 0,
+    recording_path   TEXT,
+    deleted_at_source INTEGER DEFAULT 0,
+    local_status     TEXT    DEFAULT 'pending',
+    recorded_at      TEXT    NOT NULL
+  );
+  -- Répété pour: sms, contacts, notifications, gps_locations,
+  --             geofence_alerts, social_messages, browser_history,
+  --             installed_apps, files, media
+
+  Génération du sync_hash :
+  import QuickCrypto from 'react-native-quick-crypto'
+
+  function makeSyncHash(...parts: string[]): string {
+    const uuid = storage.getString('device_uuid') ?? ''
+    return QuickCrypto
+      .createHash('sha256')
+      .update([uuid, ...parts].join(':'))
+      .digest('hex')
+  }   
+
+  // Appel: makeSyncHash('call', phone, callType, String(timestamp))
+  // Appel: makeSyncHash('gps', String(lat), String(lng), String(recordedAt))
+
+  Règle absolue : on ne supprime un enregistrement local que quand le serveur le retourne dans cleared[channel] — zéro perte de données même en cas d'interruption réseau.
+
+  ---
+  11 Collecteurs — stratégie par canal
+
+  ┌─────────────────┬────────────────────────────────────────────┬────────────────────────────┬──────────────────────────────────────┐
+  │      Canal      │               Source Android               │         Permission         │             Déclencheur              │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ calls           │ CallLog.Calls ContentProvider              │ READ_CALL_LOG              │ BroadcastReceiver ACTION_PHONE_STATE │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ sms             │ Telephony.Sms ContentProvider              │ READ_SMS                   │ BroadcastReceiver SMS_RECEIVED       │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ contacts        │ ContactsContract                           │ READ_CONTACTS              │ Sync hebdomadaire                    │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ notifications   │ NotificationListenerService                │ Manuel dans Paramètres     │ Événement temps réel                 │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ gps_locations   │ LocationManager / Fused Location           │ ACCESS_BACKGROUND_LOCATION │ watchPosition() continu              │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ geofence_alerts │ GeofencingClient (Play Services)           │ ACCESS_BACKGROUND_LOCATION │ Entrée/sortie zone                   │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ social_messages │ Extrait des notifications (titre/corps)    │ Même que notifications     │ NotificationListenerService          │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ browser_history │ UsageStatsManager + ContentProvider Chrome │ PACKAGE_USAGE_STATS        │ Sync périodique                      │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ installed_apps  │ PackageManager.getInstalledPackages()      │ Aucune                     │ PACKAGE_ADDED/REMOVED broadcast      │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ files           │ MediaStore / File API                      │ READ_MEDIA_* (Android 13+) │ Sync quotidienne                     │
+  ├─────────────────┼────────────────────────────────────────────┼────────────────────────────┼──────────────────────────────────────┤
+  │ media           │ MediaStore.Images + MediaStore.Video       │ READ_MEDIA_IMAGES/VIDEO    │ Sync quotidienne                     │
+  └─────────────────┴────────────────────────────────────────────┴────────────────────────────┴──────────────────────────────────────┘
+
+  Cas spécial — social_messages : WhatsApp, Telegram, Instagram n'exposent pas d'API de lecture des messages. La seule approche viable sans root est d'extraire title + body des notifications
+  interceptées. Les messages chiffrés end-to-end qui n'apparaissent pas dans la notification ne peuvent pas être capturés.
+
+  ---
+  Background Execution
+
+  WorkManager (via react-native-background-fetch)
+    minimumFetchInterval: 15 min
+    → CollectAll() → SyncEngine.push() → ClearPurged()
+
+  ForegroundService (Android — GPS continu)
+    serviceType = "location"
+    Notification persistante discrète : "Kin Parental Control"
+    Survit aux kills système
+
+  FCM High-Priority Message
+    Reçu même app en background/killed
+    Payload: { type: 'sync_now' | 'command' }
+    → Déclenche sync immédiate ou pull commandes
+
+  Doze Mode : FCM priority: high est le seul mécanisme qui réveille l'app depuis le Doze mode Android. Il faut impérativement le configurer.
+
+  ---
+  Sync Engine — Pipeline complet
+
+  // src/services/SyncEngine.ts
+  async function runSync() {
+    const payload: SyncPayload = {}
+
+    // Lire chaque table SQLite (status = 'pending')
+    for (const channel of CHANNELS) {
+      const rows = await db.query(`SELECT * FROM ${channel} WHERE local_status='pending' LIMIT 500`)
+      if (rows.length > 0) payload[channel] = rows.map(toApiRecord)
+    }
+
+    if (Object.keys(payload).length === 0) return
+
+    const { data } = await api.post('/device/sync', payload)
+
+    // Purger les enregistrements confirmés
+    for (const [channel, hashes] of Object.entries(data.cleared)) {
+      await db.execute(
+        `UPDATE ${channel} SET local_status='synced' WHERE sync_hash IN (${placeholders(hashes)})`,
+        hashes
+      )
+    }
+  }
+
+  ---
+  C2 Commands — Flux d'exécution
+
+  GET /device/commands
+    ↓ [{ id: 42, type: 'screenshot', status: 'pending' }]
+
+  switch(command.type):
+    'screenshot':
+      → MediaProjectionModule.capture() → Uint8Array
+      → Écrire en tmp/screenshot_42.jpg
+      → POST /device/commands/42/respond (multipart, file=screenshot_42.jpg)
+
+    'live_mic':
+      → AudioRecordModule.record(duration) → m4a
+      → POST /device/commands/42/respond (file=mic_42.m4a)
+
+    'screen_recording':
+      → MediaProjectionModule.startRecording(duration) → mp4
+      → POST /device/commands/42/respond (file=rec_42.mp4)
+
+  Ces commandes sont déclenchées par FCM (ReceptBroadcast côté Laravel → FcmService → push haute priorité vers l'appareil). L'app reçoit le push → pull immédiat GET /device/commands → exécute
+  → répond.
+
+  ---
+  Restriction Engine
+
+  // src/services/RestrictionEngine.ts
+  type Rule = { type: 'block_calls' | 'sms_filter' | 'app_block' | 'module_toggle', value: string, is_active: boolean }
+
+  async function applyRestrictions() {
+    const { data: rules } = await api.get('/device/restrictions')
+    storage.set('restriction_rules', JSON.stringify(rules))
+
+    for (const rule of rules.filter(r => r.is_active)) {
+      switch (rule.type) {
+        case 'block_calls':
+          // CallScreeningModule.blockNumber(rule.value)
+          // Android CallScreeningService → rejette automatiquement l'appel entrant
+          break
+        case 'app_block':
+          // AccessibilityService détecte foreground package = rule.value
+          // → affiche overlay de blocage (fenêtre flottante system)
+          break
+        case 'sms_filter':
+          // BroadcastReceiver SMS_RECEIVED priorité 999
+          // → abortBroadcast() si expéditeur correspond
+          break
+        case 'module_toggle':
+          // Activer/désactiver un collecteur spécifique
+          storage.set(`module_${rule.value}_enabled`, String(rule.is_active))
+          break
+      }
+    }
+  }
+
+  ---
+  Permissions Android requises (AndroidManifest.xml)
+
+  <!-- Lecture données -->
+  <uses-permission android:name="android.permission.READ_CALL_LOG" />
+  <uses-permission android:name="android.permission.READ_SMS" />
+  <uses-permission android:name="android.permission.READ_CONTACTS" />
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+  <!-- Localisation continue -->
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+  <!-- Background -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+  <!-- Réseau -->
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+  <!-- UsageStats (guide manuel dans Paramètres) -->
+  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
+
+  Permissions nécessitant une action manuelle de l'utilisateur (guide setup) :
+  - Accès aux notifications (NotificationListenerService)
+  - Statistiques d'utilisation (PACKAGE_USAGE_STATS)
+  - Afficher par-dessus les autres apps (SYSTEM_ALERT_WINDOW)
+  - Ignorer les optimisations de batterie
+
+  ---
+  Roadmap d'implémentation — 5 phases
+
+  Phase 1 — Fondations (3 jours)
+  - Structure de dossiers (src/screens, src/services, src/db, src/native)
+  - MMKV setup + UUID persistence
+  - SQLite schema (11 tables) via op-sqlite
+  - Axios client + interceptor UUID
+  - Écran onboarding (QR scan / saisie PIN) + enregistrement device_uuid
+
+  Phase 2 — Collecteurs passifs (4 jours)
+  - Native modules Kotlin: CallLogModule, SmsModule, PackageModule
+  - GPS watchPosition + insert SQLite
+  - Contacts collector
+
+  Phase 3 — Sync Engine (3 jours)
+  - SyncEngine.ts + payload builder
+  - react-native-background-fetch WorkManager 15min
+  - FCM setup + wake-up handler
+  - ForegroundService GPS
+
+  Phase 4 — Collecteurs avancés (6 jours)
+  - NotificationListenerModule Kotlin + social messages extraction
+  - UsageStatsModule (browser history)
+  - Geofencing API (Google Play Services)
+  - Files + Media collectors
+
+  Phase 5 — C2 + Restrictions (5 jours)
+  - MediaProjectionModule (screenshot / recording)
+  - AudioRecordModule (live_mic)
+  - Commands polling + réponse multipart
+  - CallScreeningService (block_calls)
+  - Accessibility overlay (app_block)
+  - SMS filter BroadcastReceiver
+
+  ---
+  Points de vigilance critiques
+
+  ┌───────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────┐
+  │                     Problème                      │                                     Solution                                      │
+  ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Android trop restrictif en background Android 12+ │ WorkManager + FCM high-priority — les deux sont stables                           │
+  ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Doze mode kill                                    │ FCM est exempt de Doze si priority: high                                          │
+  ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Notification access non automatique               │ Écran de setup guidé avec deeplink Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS │
+  ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ WhatsApp messages chiffrés                        │ Seulement le contenu visible dans la notification (limité)                        │
+  ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Battery whitelist                                 │ ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS au setup                              │
+  ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ sync_hash collision                               │ Toujours inclure device_uuid + timestamp dans le hash                             │
+  ├───────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Upload commandes C2 (gros fichiers)               │ Multipart streaming via react-native-fs + retry                                   │
+  └───────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  On commence par quelle phase ? Je recommande de démarrer par Phase 1 (fondations) — l'onboarding UUID + SQLite schema, car tout le reste en dépend.

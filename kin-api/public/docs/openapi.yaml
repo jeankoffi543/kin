@@ -1,0 +1,3089 @@
+openapi: 3.0.3
+info:
+  title: 'Laravel API Documentation'
+  description: 'Kin Parental Control Platform REST API. Three guard-separated client surfaces: Parent app (Bearer Sanctum), Admin backoffice (Bearer admin-sanctum), and Child device (X-Device-UUID header).'
+  version: 1.0.0
+servers:
+  - url: 'http://localhost:8000'
+tags:
+  - name: 'User: Authentication'
+    description: "\nEndpoints for parent / user account lifecycle (register, login, logout, profile).\nRoutes under `auth:admin-sanctum` share this controller for CRUD; those are tagged separately via `@group` on each method."
+  - name: 'User: Device Management'
+    description: "\nParent device lifecycle (register, list, show, delete, status, commands).\nTelemetry feed endpoints are tagged `@group User: Telemetry Feeds` or `@group Admin: Telemetry Feeds`."
+  - name: 'User: Conversations'
+    description: ''
+  - name: 'User: Notifications'
+    description: ''
+  - name: 'Admin: Authentication'
+    description: "\nAdmin backoffice login/logout and admin account CRUD."
+  - name: 'Admin: Admin Management'
+    description: ''
+  - name: 'Admin: User Management'
+    description: ''
+  - name: 'Admin: Titles'
+    description: "\nManage support ticket category titles (admin-only CRUD)."
+  - name: 'Admin: Notifications'
+    description: "\nBroadcast push notifications to all parents or specific users.\nDevice and user read-only endpoints are tagged in each method."
+  - name: 'Admin: Conversations'
+    description: "\nSupport ticket conversation management. Admin methods are in this group;\nuser-facing methods are tagged `@group User: Conversations` individually."
+  - name: 'Device: Sync & Telemetry'
+    description: "\nDedicated ingestion and synchronization controller for mobile child devices.\nRestrictions and command endpoints are tagged `@group Device: Restrictions & Commands`.\n\nAll methods are encapsulated in $this->invokeWithCatching(function () { ... })\nto respect the strict \"zero logic in the controller\" architectural contract."
+  - name: 'Device: Notifications'
+    description: ''
+  - name: 'Device: Restrictions & Commands'
+    description: ''
+  - name: Miscellaneous
+    description: ''
+components:
+  securitySchemes:
+    default:
+      type: http
+      scheme: bearer
+      description: 'Get a token via `POST /api/user/login` (parent), `POST /api/admin/login` (admin), or pass `X-Device-UUID` header (child device).'
+security:
+  -
+    default: []
+paths:
+  /api/user/register:
+    post:
+      summary: ''
+      operationId: postApiUserRegister
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Authentication'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                email:
+                  type: string
+                  description: 'Must be a valid email address.'
+                  example: zbailey@example.net
+                password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: '-0pBNvYgxw'
+              required:
+                - name
+                - email
+                - password
+  /api/user/login:
+    post:
+      summary: ''
+      operationId: postApiUserLogin
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Authentication'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: 'Must be a valid email address.'
+                  example: gbailey@example.net
+                password:
+                  type: string
+                  description: ''
+                  example: '|]|{+-'
+              required:
+                - email
+                - password
+  /api/user/logout:
+    post:
+      summary: ''
+      operationId: postApiUserLogout
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Authentication'
+  /api/user/me:
+    get:
+      summary: ''
+      operationId: getApiUserMe
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Authentication'
+  /api/user/devices/register:
+    post:
+      summary: 'Mobile device registers or updates its own metadata.'
+      operationId: mobileDeviceRegistersOrUpdatesItsOwnMetadata
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  description: ''
+                  example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+                platform:
+                  type: string
+                  description: ''
+                  example: architecto
+                brand:
+                  type: string
+                  description: ''
+                  example: architecto
+                model:
+                  type: string
+                  description: ''
+                  example: architecto
+                os_version:
+                  type: string
+                  description: ''
+                  example: architecto
+                app_version:
+                  type: string
+                  description: ''
+                  example: architecto
+                device_name:
+                  type: string
+                  description: ''
+                  example: architecto
+                ip_address:
+                  type: string
+                  description: ''
+                  example: architecto
+                fcm_token:
+                  type: string
+                  description: 'Must be at least 10 characters. Must not be greater than 4096 characters.'
+                  example: 'n'
+                  nullable: true
+                image:
+                  type: string
+                  format: binary
+                  description: 'Must be an image. Must not be greater than 5120 kilobytes.'
+              required:
+                - uuid
+  /api/user/devices:
+    get:
+      summary: 'Parent lists their registered child devices.'
+      operationId: parentListsTheirRegisteredChildDevices
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+  '/api/user/devices/{id}':
+    get:
+      summary: 'Parent gets details of a specific child device.'
+      operationId: parentGetsDetailsOfASpecificChildDevice
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    delete:
+      summary: 'Parent deletes / dissociates a specific child device.'
+      operationId: parentDeletesDissociatesASpecificChildDevice
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/status':
+    put:
+      summary: 'Parent updates device status.'
+      operationId: parentUpdatesDeviceStatus
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                call_recording_enabled:
+                  type: boolean
+                  description: ''
+                  example: true
+                microphone_recording_interval:
+                  type: integer
+                  description: 'Must be at least 1. Must not be greater than 1440.'
+                  example: 1
+                microphone_recording_continuous:
+                  type: boolean
+                  description: ''
+                  example: true
+                screen_recording_enabled:
+                  type: boolean
+                  description: ''
+                  example: true
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/command':
+    post:
+      summary: 'Parent schedules a remote command.'
+      operationId: parentSchedulesARemoteCommand
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                command_type:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - screenshot
+                    - screen_recording
+                    - live_mic
+                parameters:
+                  type: object
+                  description: ''
+                  example: null
+                  properties: {}
+              required:
+                - command_type
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/calls':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdCalls
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/sms':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdSms
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/contacts':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdContacts
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/notifications':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdNotifications
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/gps':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdGps
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/geofences':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdGeofences
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    post:
+      summary: ''
+      operationId: postApiUserDevicesIdGeofences
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                latitude:
+                  type: number
+                  description: ''
+                  example: 4326.41688
+                longitude:
+                  type: number
+                  description: ''
+                  example: 4326.41688
+                radius:
+                  type: number
+                  description: 'Must be at least 0.'
+                  example: 77
+                is_active:
+                  type: boolean
+                  description: ''
+                  example: true
+              required:
+                - name
+                - latitude
+                - longitude
+                - radius
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/geofence-alerts':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdGeofenceAlerts
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/social':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdSocial
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/browser':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdBrowser
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/apps':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdApps
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/files':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdFiles
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/media':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdMedia
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/restrictions':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdRestrictions
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    post:
+      summary: ''
+      operationId: postApiUserDevicesIdRestrictions
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rule_type:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - block_calls
+                    - sms_filter
+                    - app_block
+                    - module_toggle
+                is_enabled:
+                  type: boolean
+                  description: ''
+                  example: false
+                parameters:
+                  type: object
+                  description: ''
+                  example: null
+                  properties: {}
+              required:
+                - rule_type
+                - is_enabled
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/geofences/{geofenceId}':
+    put:
+      summary: ''
+      operationId: putApiUserDevicesIdGeofencesGeofenceId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                latitude:
+                  type: number
+                  description: ''
+                  example: 4326.41688
+                longitude:
+                  type: number
+                  description: ''
+                  example: 4326.41688
+                radius:
+                  type: number
+                  description: 'Must be at least 0.'
+                  example: 77
+                is_active:
+                  type: boolean
+                  description: ''
+                  example: true
+    delete:
+      summary: ''
+      operationId: deleteApiUserDevicesIdGeofencesGeofenceId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: geofenceId
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/media/{mediaId}/download':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdMediaMediaIdDownload
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: mediaId
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/devices/{id}/calls/{callId}/download':
+    get:
+      summary: ''
+      operationId: getApiUserDevicesIdCallsCallIdDownload
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: callId
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/calls':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdCalls
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/sms':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdSms
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/contacts':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdContacts
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/notifications':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdNotifications
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/gps':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdGps
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/geofences':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdGeofences
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/geofence-alerts':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdGeofenceAlerts
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/social':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdSocial
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/browser':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdBrowser
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/apps':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdApps
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/files':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdFiles
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/media':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdMedia
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/restrictions':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdRestrictions
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/media/{mediaId}/download':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdMediaMediaIdDownload
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: mediaId
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/calls/{callId}/download':
+    get:
+      summary: ''
+      operationId: getApiAdminDevicesIdCallsCallIdDownload
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Device Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: callId
+        description: ''
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/user/conversations:
+    get:
+      summary: 'Parent lists their own support conversations (paginated).'
+      operationId: parentListsTheirOwnSupportConversationspaginated
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Conversations'
+    post:
+      summary: 'Parent opens a new support ticket conversation.'
+      operationId: parentOpensANewSupportTicketConversation
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'User: Conversations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title_id:
+                  type: string
+                  description: 'Must match an existing stored value.'
+                  example: architecto
+                status:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - pending
+                    - active
+                    - closed
+              required:
+                - title_id
+  '/api/user/conversations/{id}':
+    get:
+      summary: 'Parent retrieves the full thread of one of their conversations.'
+      operationId: parentRetrievesTheFullThreadOfOneOfTheirConversations
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Conversations'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/user/notifications:
+    get:
+      summary: ''
+      operationId: getApiUserNotifications
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Notifications'
+  '/api/user/notifications/{id}':
+    get:
+      summary: ''
+      operationId: getApiUserNotificationsId
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User: Notifications'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the notification.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/admin/login:
+    post:
+      summary: ''
+      operationId: postApiAdminLogin
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Authentication'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: 'Must be a valid email address.'
+                  example: gbailey@example.net
+                password:
+                  type: string
+                  description: ''
+                  example: '|]|{+-'
+              required:
+                - email
+                - password
+  /api/admin/logout:
+    post:
+      summary: ''
+      operationId: postApiAdminLogout
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Authentication'
+  /api/admin/admins:
+    get:
+      summary: ''
+      operationId: getApiAdminAdmins
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Admin Management'
+    post:
+      summary: ''
+      operationId: postApiAdminAdmins
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Admin Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                email:
+                  type: string
+                  description: 'Must be a valid email address.'
+                  example: zbailey@example.net
+                password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: '-0pBNvYgxw'
+                role:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - admin
+                    - support
+              required:
+                - name
+                - email
+                - password
+                - role
+  '/api/admin/admins/{id}':
+    get:
+      summary: ''
+      operationId: getApiAdminAdminsId
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Admin Management'
+    put:
+      summary: ''
+      operationId: putApiAdminAdminsId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Admin Management'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                email:
+                  type: string
+                  description: 'Must be a valid email address.'
+                  example: zbailey@example.net
+                password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: '-0pBNvYgxw'
+                role:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - admin
+                    - support
+    delete:
+      summary: ''
+      operationId: deleteApiAdminAdminsId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Admin Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the admin.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/admin/users:
+    get:
+      summary: ''
+      operationId: getApiAdminUsers
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: User Management'
+    post:
+      summary: ''
+      operationId: postApiAdminUsers
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: User Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                email:
+                  type: string
+                  description: 'Must be a valid email address.'
+                  example: zbailey@example.net
+                password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: '-0pBNvYgxw'
+              required:
+                - name
+                - email
+                - password
+  '/api/admin/users/{id}':
+    get:
+      summary: ''
+      operationId: getApiAdminUsersId
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: User Management'
+    put:
+      summary: ''
+      operationId: putApiAdminUsersId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: User Management'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                email:
+                  type: string
+                  description: 'Must be a valid email address.'
+                  example: zbailey@example.net
+                password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: '-0pBNvYgxw'
+    delete:
+      summary: ''
+      operationId: deleteApiAdminUsersId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: User Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the user.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/admin/titles:
+    get:
+      summary: ''
+      operationId: getApiAdminTitles
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Titles'
+    post:
+      summary: ''
+      operationId: postApiAdminTitles
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Titles'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+              required:
+                - name
+  '/api/admin/titles/{id}':
+    get:
+      summary: ''
+      operationId: getApiAdminTitlesId
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Titles'
+    put:
+      summary: ''
+      operationId: putApiAdminTitlesId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Titles'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+              required:
+                - name
+    delete:
+      summary: ''
+      operationId: deleteApiAdminTitlesId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Titles'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the title.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/admin/notifications:
+    get:
+      summary: ''
+      operationId: getApiAdminNotifications
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Notifications'
+    post:
+      summary: ''
+      operationId: postApiAdminNotifications
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Notifications'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                audience:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - all
+                    - specific
+                user_ids:
+                  type: array
+                  description: 'Must match an existing stored value.'
+                  example: null
+                  items:
+                    type: string
+                title:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: 'n'
+                body:
+                  type: string
+                  description: ''
+                  example: architecto
+              required:
+                - audience
+                - title
+                - body
+  '/api/admin/notifications/{id}':
+    get:
+      summary: ''
+      operationId: getApiAdminNotificationsId
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Notifications'
+    put:
+      summary: ''
+      operationId: putApiAdminNotificationsId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Notifications'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                audience:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - all
+                    - specific
+                user_ids:
+                  type: array
+                  description: 'Must match an existing stored value.'
+                  example: null
+                  items:
+                    type: string
+                title:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: 'n'
+                body:
+                  type: string
+                  description: ''
+                  example: architecto
+    delete:
+      summary: ''
+      operationId: deleteApiAdminNotificationsId
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Notifications'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the notification.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/conversations/{id}/message':
+    post:
+      summary: 'Send a message into a conversation thread.'
+      operationId: sendAMessageIntoAConversationThread
+      description: "The service resolves the correct MessageSender enum (user / admin / support)\nby inspecting which guard is currently authenticated."
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Conversations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  description: ''
+                  example: architecto
+              required:
+                - content
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/conversations/{id}/typing':
+    post:
+      summary: 'Broadcast a "is typing…" presence signal to the conversation channel.'
+      operationId: broadcastAisTypingPresenceSignalToTheConversationChannel
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Conversations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_typing:
+                  type: boolean
+                  description: ''
+                  example: true
+              required:
+                - is_typing
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/user/conversations/{id}/read':
+    post:
+      summary: 'Mark all messages up to a given ID as read for the current actor.'
+      operationId: markAllMessagesUpToAGivenIDAsReadForTheCurrentActor
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Conversations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                last_message_id:
+                  type: string
+                  description: 'Must match an existing stored value.'
+                  example: architecto
+              required:
+                - last_message_id
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/admin/conversations:
+    get:
+      summary: 'Admin lists all support conversations (paginated, filterable, sortable).'
+      operationId: adminListsAllSupportConversationspaginatedFilterableSortable
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Conversations'
+  '/api/admin/conversations/{id}':
+    get:
+      summary: 'Admin retrieves the full thread of a given conversation.'
+      operationId: adminRetrievesTheFullThreadOfAGivenConversation
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Admin: Conversations'
+    delete:
+      summary: 'Admin soft-deletes (closes) a support conversation.'
+      operationId: adminSoftDeletesclosesASupportConversation
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Conversations'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/conversations/{id}/message':
+    post:
+      summary: 'Send a message into a conversation thread.'
+      operationId: sendAMessageIntoAConversationThread
+      description: "The service resolves the correct MessageSender enum (user / admin / support)\nby inspecting which guard is currently authenticated."
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Conversations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  description: ''
+                  example: architecto
+              required:
+                - content
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/conversations/{id}/typing':
+    post:
+      summary: 'Broadcast a "is typing…" presence signal to the conversation channel.'
+      operationId: broadcastAisTypingPresenceSignalToTheConversationChannel
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Conversations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_typing:
+                  type: boolean
+                  description: ''
+                  example: true
+              required:
+                - is_typing
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/conversations/{id}/read':
+    post:
+      summary: 'Mark all messages up to a given ID as read for the current actor.'
+      operationId: markAllMessagesUpToAGivenIDAsReadForTheCurrentActor
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Admin: Conversations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                last_message_id:
+                  type: string
+                  description: 'Must match an existing stored value.'
+                  example: architecto
+              required:
+                - last_message_id
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the conversation.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/device/sync:
+    post:
+      summary: 'Ingest a validated SQLite telemetry batch from a child mobile device.'
+      operationId: ingestAValidatedSQLiteTelemetryBatchFromAChildMobileDevice
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Device: Sync & Telemetry'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                calls:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      phone_number:
+                        type: string
+                        description: ''
+                        example: architecto
+                      call_type:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - incoming
+                          - outgoing
+                          - missed
+                      duration:
+                        type: integer
+                        description: 'Must be at least 0.'
+                        example: 39
+                      contact_name:
+                        type: string
+                        description: ''
+                        example: architecto
+                        nullable: true
+                      call_recorded:
+                        type: boolean
+                        description: ''
+                        example: true
+                      recording_path:
+                        type: string
+                        description: ''
+                        example: architecto
+                        nullable: true
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - phone_number
+                      - call_type
+                      - duration
+                sms:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      address:
+                        type: string
+                        description: ''
+                        example: architecto
+                      body:
+                        type: string
+                        description: ''
+                        example: architecto
+                      type:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - inbox
+                          - sent
+                      date:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - address
+                      - body
+                      - type
+                      - date
+                contacts:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      name:
+                        type: string
+                        description: ''
+                        example: architecto
+                      phone_number:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: false
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - name
+                      - phone_number
+                notifications:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      package_name:
+                        type: string
+                        description: ''
+                        example: architecto
+                      title:
+                        type: string
+                        description: ''
+                        example: architecto
+                        nullable: true
+                      body:
+                        type: string
+                        description: ''
+                        example: architecto
+                        nullable: true
+                      date:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - package_name
+                      - date
+                gps_locations:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      latitude:
+                        type: number
+                        description: ''
+                        example: 4326.41688
+                      longitude:
+                        type: number
+                        description: ''
+                        example: 4326.41688
+                      altitude:
+                        type: number
+                        description: ''
+                        example: 4326.41688
+                        nullable: true
+                      accuracy:
+                        type: number
+                        description: ''
+                        example: 4326.41688
+                        nullable: true
+                      recorded_at:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - latitude
+                      - longitude
+                      - recorded_at
+                geofence_alerts:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      geofence_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      event_type:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - enter
+                          - exit
+                      latitude:
+                        type: number
+                        description: ''
+                        example: 4326.41688
+                      longitude:
+                        type: number
+                        description: ''
+                        example: 4326.41688
+                      triggered_at:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - geofence_id
+                      - event_type
+                      - latitude
+                      - longitude
+                      - triggered_at
+                social_messages:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      platform:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - whatsapp
+                          - facebook
+                          - tiktok
+                          - instagram
+                          - twitter
+                          - telegram
+                          - messenger
+                      sender_name:
+                        type: string
+                        description: ''
+                        example: architecto
+                      message:
+                        type: string
+                        description: ''
+                        example: architecto
+                      date:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - platform
+                      - sender_name
+                      - message
+                      - date
+                browser_history:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      url:
+                        type: string
+                        description: ''
+                        example: 'http://www.bailey.biz/quos-velit-et-fugiat-sunt-nihil-accusantium-harum.html'
+                      title:
+                        type: string
+                        description: ''
+                        example: architecto
+                        nullable: true
+                      visited_at:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - url
+                      - visited_at
+                installed_apps:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      app_name:
+                        type: string
+                        description: ''
+                        example: architecto
+                      package_name:
+                        type: string
+                        description: ''
+                        example: architecto
+                      installed_at:
+                        type: string
+                        description: ''
+                        example: architecto
+                        nullable: true
+                      is_blocked:
+                        type: boolean
+                        description: ''
+                        example: false
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - app_name
+                      - package_name
+                files:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      path:
+                        type: string
+                        description: ''
+                        example: architecto
+                      file_name:
+                        type: string
+                        description: ''
+                        example: architecto
+                      file_size:
+                        type: integer
+                        description: 'Must be at least 0.'
+                        example: 39
+                      is_directory:
+                        type: boolean
+                        description: ''
+                        example: false
+                      file_created_at:
+                        type: string
+                        description: ''
+                        example: architecto
+                        nullable: true
+                      local_status:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - pending
+                          - processing
+                          - completed
+                          - failed
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: true
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - path
+                      - file_name
+                      - file_size
+                media:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: object
+                    properties:
+                      sync_hash:
+                        type: string
+                        description: ''
+                        example: architecto
+                      local_sqlite_id:
+                        type: integer
+                        description: ''
+                        example: 16
+                      media_type:
+                        type: string
+                        description: ''
+                        example: architecto
+                        enum:
+                          - photo
+                          - video
+                      origin_app:
+                        type: string
+                        description: ''
+                        example: architecto
+                      file_name:
+                        type: string
+                        description: ''
+                        example: architecto
+                      file_size:
+                        type: integer
+                        description: 'Must be at least 0.'
+                        example: 39
+                      path:
+                        type: string
+                        description: ''
+                        example: architecto
+                      deleted_at_source:
+                        type: boolean
+                        description: ''
+                        example: false
+                    required:
+                      - sync_hash
+                      - local_sqlite_id
+                      - media_type
+                      - origin_app
+                      - file_name
+                      - file_size
+                      - path
+  /api/device/notifications:
+    get:
+      summary: ''
+      operationId: getApiDeviceNotifications
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Missing X-Device-UUID header or parameter.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Missing X-Device-UUID header or parameter.'
+      tags:
+        - 'Device: Notifications'
+  '/api/device/notifications/{id}':
+    get:
+      summary: ''
+      operationId: getApiDeviceNotificationsId
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Missing X-Device-UUID header or parameter.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Missing X-Device-UUID header or parameter.'
+      tags:
+        - 'Device: Notifications'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the notification.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/device/restrictions:
+    get:
+      summary: 'Pull active restriction rules for the child device.'
+      operationId: pullActiveRestrictionRulesForTheChildDevice
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Missing X-Device-UUID header or parameter.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Missing X-Device-UUID header or parameter.'
+      tags:
+        - 'Device: Restrictions & Commands'
+  /api/device/commands:
+    get:
+      summary: 'Pull pending remote commands for the child device.'
+      operationId: pullPendingRemoteCommandsForTheChildDevice
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: 'Missing X-Device-UUID header or parameter.'
+                properties:
+                  message:
+                    type: string
+                    example: 'Missing X-Device-UUID header or parameter.'
+      tags:
+        - 'Device: Restrictions & Commands'
+  '/api/device/commands/{id}/respond':
+    post:
+      summary: 'Respond to a specific scheduled remote command (submit execution result).'
+      operationId: respondToASpecificScheduledRemoteCommandsubmitExecutionResult
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - 'Device: Restrictions & Commands'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - pending
+                    - processing
+                    - completed
+                    - failed
+                result_url:
+                  type: string
+                  description: 'This field is required when <code>file</code> is not present. Must not be greater than 2048 characters.'
+                  example: 'http://bailey.com/'
+                  nullable: true
+                file:
+                  type: string
+                  format: binary
+                  description: 'This field is required when <code>result_url</code> is not present. Must be a file. Must not be greater than 20480 kilobytes.'
+              required:
+                - status
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the command.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  '/api/admin/devices/{id}/push-test':
+    post:
+      summary: ''
+      operationId: postApiAdminDevicesIdPushTest
+      description: ''
+      parameters: []
+      responses: {}
+      tags:
+        - Miscellaneous
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                audience:
+                  type: string
+                  description: ''
+                  example: architecto
+                  enum:
+                    - all
+                    - specific
+                user_ids:
+                  type: array
+                  description: 'Must match an existing stored value.'
+                  example: null
+                  items:
+                    type: string
+                title:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: 'n'
+                body:
+                  type: string
+                  description: ''
+                  example: architecto
+              required:
+                - audience
+                - title
+                - body
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the device.'
+        example: architecto
+        required: true
+        schema:
+          type: string

@@ -1,0 +1,1318 @@
+name: 'Device: Sync & Telemetry'
+description: |-
+
+  Dedicated ingestion and synchronization controller for mobile child devices.
+  Restrictions and command endpoints are tagged `@group Device: Restrictions & Commands`.
+
+  All methods are encapsulated in $this->invokeWithCatching(function () { ... })
+  to respect the strict "zero logic in the controller" architectural contract.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/device/sync
+    metadata:
+      custom: []
+      groupName: 'Device: Sync & Telemetry'
+      groupDescription: |-
+
+        Dedicated ingestion and synchronization controller for mobile child devices.
+        Restrictions and command endpoints are tagged `@group Device: Restrictions & Commands`.
+
+        All methods are encapsulated in $this->invokeWithCatching(function () { ... })
+        to respect the strict "zero logic in the controller" architectural contract.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Ingest a validated SQLite telemetry batch from a child mobile device.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {BEARER_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      calls:
+        custom: []
+        name: calls
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      sms:
+        custom: []
+        name: sms
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      contacts:
+        custom: []
+        name: contacts
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      notifications:
+        custom: []
+        name: notifications
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      gps_locations:
+        custom: []
+        name: gps_locations
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      geofence_alerts:
+        custom: []
+        name: geofence_alerts
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      social_messages:
+        custom: []
+        name: social_messages
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      browser_history:
+        custom: []
+        name: browser_history
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      installed_apps:
+        custom: []
+        name: installed_apps
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      files:
+        custom: []
+        name: files
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      media:
+        custom: []
+        name: media
+        description: ''
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].sync_hash':
+        custom: []
+        name: 'calls[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].local_sqlite_id':
+        custom: []
+        name: 'calls[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].phone_number':
+        custom: []
+        name: 'calls[].phone_number'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].call_type':
+        custom: []
+        name: 'calls[].call_type'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues:
+          - incoming
+          - outgoing
+          - missed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].duration':
+        custom: []
+        name: 'calls[].duration'
+        description: 'Must be at least 0.'
+        required: true
+        example: 39
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].contact_name':
+        custom: []
+        name: 'calls[].contact_name'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'calls[].call_recorded':
+        custom: []
+        name: 'calls[].call_recorded'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].recording_path':
+        custom: []
+        name: 'calls[].recording_path'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'calls[].local_status':
+        custom: []
+        name: 'calls[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'calls[].deleted_at_source':
+        custom: []
+        name: 'calls[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].sync_hash':
+        custom: []
+        name: 'sms[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].local_sqlite_id':
+        custom: []
+        name: 'sms[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].address':
+        custom: []
+        name: 'sms[].address'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].body':
+        custom: []
+        name: 'sms[].body'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].type':
+        custom: []
+        name: 'sms[].type'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues:
+          - inbox
+          - sent
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].date':
+        custom: []
+        name: 'sms[].date'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].local_status':
+        custom: []
+        name: 'sms[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'sms[].deleted_at_source':
+        custom: []
+        name: 'sms[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'contacts[].sync_hash':
+        custom: []
+        name: 'contacts[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'contacts[].local_sqlite_id':
+        custom: []
+        name: 'contacts[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'contacts[].name':
+        custom: []
+        name: 'contacts[].name'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'contacts[].phone_number':
+        custom: []
+        name: 'contacts[].phone_number'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'contacts[].local_status':
+        custom: []
+        name: 'contacts[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'contacts[].deleted_at_source':
+        custom: []
+        name: 'contacts[].deleted_at_source'
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'notifications[].sync_hash':
+        custom: []
+        name: 'notifications[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'notifications[].local_sqlite_id':
+        custom: []
+        name: 'notifications[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'notifications[].package_name':
+        custom: []
+        name: 'notifications[].package_name'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'notifications[].title':
+        custom: []
+        name: 'notifications[].title'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'notifications[].body':
+        custom: []
+        name: 'notifications[].body'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'notifications[].date':
+        custom: []
+        name: 'notifications[].date'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'notifications[].local_status':
+        custom: []
+        name: 'notifications[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'notifications[].deleted_at_source':
+        custom: []
+        name: 'notifications[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'gps_locations[].sync_hash':
+        custom: []
+        name: 'gps_locations[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'gps_locations[].local_sqlite_id':
+        custom: []
+        name: 'gps_locations[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'gps_locations[].latitude':
+        custom: []
+        name: 'gps_locations[].latitude'
+        description: ''
+        required: true
+        example: 4326.41688
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'gps_locations[].longitude':
+        custom: []
+        name: 'gps_locations[].longitude'
+        description: ''
+        required: true
+        example: 4326.41688
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'gps_locations[].altitude':
+        custom: []
+        name: 'gps_locations[].altitude'
+        description: ''
+        required: false
+        example: 4326.41688
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'gps_locations[].accuracy':
+        custom: []
+        name: 'gps_locations[].accuracy'
+        description: ''
+        required: false
+        example: 4326.41688
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'gps_locations[].recorded_at':
+        custom: []
+        name: 'gps_locations[].recorded_at'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'gps_locations[].local_status':
+        custom: []
+        name: 'gps_locations[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'gps_locations[].deleted_at_source':
+        custom: []
+        name: 'gps_locations[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].sync_hash':
+        custom: []
+        name: 'geofence_alerts[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].local_sqlite_id':
+        custom: []
+        name: 'geofence_alerts[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].geofence_id':
+        custom: []
+        name: 'geofence_alerts[].geofence_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].event_type':
+        custom: []
+        name: 'geofence_alerts[].event_type'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues:
+          - enter
+          - exit
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].latitude':
+        custom: []
+        name: 'geofence_alerts[].latitude'
+        description: ''
+        required: true
+        example: 4326.41688
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].longitude':
+        custom: []
+        name: 'geofence_alerts[].longitude'
+        description: ''
+        required: true
+        example: 4326.41688
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].triggered_at':
+        custom: []
+        name: 'geofence_alerts[].triggered_at'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].local_status':
+        custom: []
+        name: 'geofence_alerts[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'geofence_alerts[].deleted_at_source':
+        custom: []
+        name: 'geofence_alerts[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].sync_hash':
+        custom: []
+        name: 'social_messages[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].local_sqlite_id':
+        custom: []
+        name: 'social_messages[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].platform':
+        custom: []
+        name: 'social_messages[].platform'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues:
+          - whatsapp
+          - facebook
+          - tiktok
+          - instagram
+          - twitter
+          - telegram
+          - messenger
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].sender_name':
+        custom: []
+        name: 'social_messages[].sender_name'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].message':
+        custom: []
+        name: 'social_messages[].message'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].date':
+        custom: []
+        name: 'social_messages[].date'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].local_status':
+        custom: []
+        name: 'social_messages[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'social_messages[].deleted_at_source':
+        custom: []
+        name: 'social_messages[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'browser_history[].sync_hash':
+        custom: []
+        name: 'browser_history[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'browser_history[].local_sqlite_id':
+        custom: []
+        name: 'browser_history[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'browser_history[].url':
+        custom: []
+        name: 'browser_history[].url'
+        description: ''
+        required: true
+        example: 'http://www.bailey.biz/quos-velit-et-fugiat-sunt-nihil-accusantium-harum.html'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'browser_history[].title':
+        custom: []
+        name: 'browser_history[].title'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'browser_history[].visited_at':
+        custom: []
+        name: 'browser_history[].visited_at'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'browser_history[].local_status':
+        custom: []
+        name: 'browser_history[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'browser_history[].deleted_at_source':
+        custom: []
+        name: 'browser_history[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'installed_apps[].sync_hash':
+        custom: []
+        name: 'installed_apps[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'installed_apps[].local_sqlite_id':
+        custom: []
+        name: 'installed_apps[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'installed_apps[].app_name':
+        custom: []
+        name: 'installed_apps[].app_name'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'installed_apps[].package_name':
+        custom: []
+        name: 'installed_apps[].package_name'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'installed_apps[].installed_at':
+        custom: []
+        name: 'installed_apps[].installed_at'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'installed_apps[].is_blocked':
+        custom: []
+        name: 'installed_apps[].is_blocked'
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'installed_apps[].local_status':
+        custom: []
+        name: 'installed_apps[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'installed_apps[].deleted_at_source':
+        custom: []
+        name: 'installed_apps[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].sync_hash':
+        custom: []
+        name: 'files[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].local_sqlite_id':
+        custom: []
+        name: 'files[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].path':
+        custom: []
+        name: 'files[].path'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].file_name':
+        custom: []
+        name: 'files[].file_name'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].file_size':
+        custom: []
+        name: 'files[].file_size'
+        description: 'Must be at least 0.'
+        required: true
+        example: 39
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].is_directory':
+        custom: []
+        name: 'files[].is_directory'
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].file_created_at':
+        custom: []
+        name: 'files[].file_created_at'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      'files[].local_status':
+        custom: []
+        name: 'files[].local_status'
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues:
+          - pending
+          - processing
+          - completed
+          - failed
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'files[].deleted_at_source':
+        custom: []
+        name: 'files[].deleted_at_source'
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].sync_hash':
+        custom: []
+        name: 'media[].sync_hash'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].local_sqlite_id':
+        custom: []
+        name: 'media[].local_sqlite_id'
+        description: ''
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].media_type':
+        custom: []
+        name: 'media[].media_type'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues:
+          - photo
+          - video
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].origin_app':
+        custom: []
+        name: 'media[].origin_app'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].file_name':
+        custom: []
+        name: 'media[].file_name'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].file_size':
+        custom: []
+        name: 'media[].file_size'
+        description: 'Must be at least 0.'
+        required: true
+        example: 39
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].path':
+        custom: []
+        name: 'media[].path'
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      'media[].deleted_at_source':
+        custom: []
+        name: 'media[].deleted_at_source'
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      calls:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          phone_number: architecto
+          call_type: architecto
+          duration: 39
+          contact_name: architecto
+          call_recorded: true
+          recording_path: architecto
+          local_status: architecto
+          deleted_at_source: true
+      sms:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          address: architecto
+          body: architecto
+          type: architecto
+          date: architecto
+          local_status: architecto
+          deleted_at_source: true
+      contacts:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          name: architecto
+          phone_number: architecto
+          local_status: architecto
+          deleted_at_source: false
+      notifications:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          package_name: architecto
+          title: architecto
+          body: architecto
+          date: architecto
+          local_status: architecto
+          deleted_at_source: true
+      gps_locations:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          latitude: 4326.41688
+          longitude: 4326.41688
+          altitude: 4326.41688
+          accuracy: 4326.41688
+          recorded_at: architecto
+          local_status: architecto
+          deleted_at_source: true
+      geofence_alerts:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          geofence_id: 16
+          event_type: architecto
+          latitude: 4326.41688
+          longitude: 4326.41688
+          triggered_at: architecto
+          local_status: architecto
+          deleted_at_source: true
+      social_messages:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          platform: architecto
+          sender_name: architecto
+          message: architecto
+          date: architecto
+          local_status: architecto
+          deleted_at_source: true
+      browser_history:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          url: 'http://www.bailey.biz/quos-velit-et-fugiat-sunt-nihil-accusantium-harum.html'
+          title: architecto
+          visited_at: architecto
+          local_status: architecto
+          deleted_at_source: true
+      installed_apps:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          app_name: architecto
+          package_name: architecto
+          installed_at: architecto
+          is_blocked: false
+          local_status: architecto
+          deleted_at_source: true
+      files:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          path: architecto
+          file_name: architecto
+          file_size: 39
+          is_directory: false
+          file_created_at: architecto
+          local_status: architecto
+          deleted_at_source: true
+      media:
+        - sync_hash: architecto
+          local_sqlite_id: 16
+          media_type: architecto
+          origin_app: architecto
+          file_name: architecto
+          file_size: 39
+          path: architecto
+          deleted_at_source: false
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
