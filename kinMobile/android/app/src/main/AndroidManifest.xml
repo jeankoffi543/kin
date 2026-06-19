@@ -1,0 +1,132 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ── Réseau ─────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- ── Téléphonie & SMS ───────────────────────────────── -->
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
+    <!-- ── Contacts ───────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- ── Localisation ──────────────────────────────────── -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ── Caméra (QR scanner onboarding) ────────────────── -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- ── Stockage & Médias ──────────────────────────────── -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- ── Background & Services ─────────────────────────── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- ── UsageStats (navigateur / apps) ────────────────── -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ── Micro (commande live_mic) ─────────────────────── -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- ── Blocage d'appels (TelecomManager.endCall) ─────── -->
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+
+    <!-- ── MediaProjection (screenshot / screen recording) ── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+
+    <application
+      android:name=".MainApplication"
+      android:label="@string/app_name"
+      android:icon="@mipmap/ic_launcher"
+      android:roundIcon="@mipmap/ic_launcher_round"
+      android:allowBackup="false"
+      android:theme="@style/AppTheme"
+      android:usesCleartextTraffic="${usesCleartextTraffic}"
+      android:supportsRtl="true">
+
+      <!-- ── Foreground Service GPS / collecte ────────────────── -->
+      <service
+        android:name=".services.KinForegroundService"
+        android:foregroundServiceType="location|microphone|mediaProjection"
+        android:exported="false" />
+
+      <!-- ── NotificationListenerService ──────────────────────── -->
+      <service
+        android:name=".services.NotificationCollectorService"
+        android:label="Kin Notification Listener"
+        android:exported="true"
+        android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+        <intent-filter>
+          <action android:name="android.service.notification.NotificationListenerService" />
+        </intent-filter>
+      </service>
+
+      <!-- ── Geofence BroadcastReceiver ───────────────────────── -->
+      <receiver
+        android:name=".services.GeofenceBroadcastReceiver"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="com.kinmobile.GEOFENCE_TRANSITION" />
+        </intent-filter>
+      </receiver>
+
+      <!-- ── FCM : réception messages push ─────────────────── -->
+      <service
+        android:name="com.google.firebase.messaging.FirebaseMessagingService"
+        android:exported="false"
+        tools:node="replace">
+        <intent-filter android:priority="-500">
+          <action android:name="com.google.firebase.MESSAGING_EVENT" />
+        </intent-filter>
+      </service>
+
+      <activity
+        android:name=".MainActivity"
+        android:label="@string/app_name"
+        android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+        android:launchMode="singleTask"
+        android:windowSoftInputMode="adjustResize"
+        android:exported="true">
+
+        <!-- Launcher -->
+        <intent-filter>
+          <action android:name="android.intent.action.MAIN" />
+          <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+
+        <!-- Deep link : kin://setup?uuid=XXX -->
+        <intent-filter android:autoVerify="true">
+          <action android:name="android.intent.action.VIEW" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <category android:name="android.intent.category.BROWSABLE" />
+          <data android:scheme="kin" android:host="setup" />
+        </intent-filter>
+
+        <!-- Deep link alternatif : kin-setup://register?uuid=XXX -->
+        <intent-filter android:autoVerify="true">
+          <action android:name="android.intent.action.VIEW" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <category android:name="android.intent.category.BROWSABLE" />
+          <data android:scheme="kin-setup" android:host="register" />
+        </intent-filter>
+
+      </activity>
+    </application>
+</manifest>

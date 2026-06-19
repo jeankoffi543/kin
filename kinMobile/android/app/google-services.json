@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "276756788190",
+    "project_id": "kin-supervised-production",
+    "storage_bucket": "kin-supervised-production.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276756788190:android:eab3aace51f3fdca3c634f",
+        "android_client_info": {
+          "package_name": "com.kinmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX4qSv_rzrdTmRNNZfPHkCT3MSYYFVj5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
